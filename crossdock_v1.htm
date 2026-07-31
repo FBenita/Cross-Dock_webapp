@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Operación de un Cross-Dock</title>
+<style>
+  :root{
+    --navy-900:#0B1F3A;
+    --navy-800:#122C52;
+    --navy-700:#1D4373;
+    --navy-accent:#2E5F9E;
+    --navy-accent-light:#6f9bd1;
+    --white:#FFFFFF;
+    --gray-50:#F4F6F8;
+    --gray-100:#E7EBEF;
+    --gray-200:#D7DCE2;
+    --gray-300:#C6CDD6;
+    --gray-500:#7C8896;
+    --gray-700:#4A5568;
+    --status-green:#1E7145;
+    --status-green-bg:#E5F3EB;
+    --status-red:#B3261E;
+    --status-red-bg:#FBEAE9;
+    --font-display:"Segoe UI Semibold","Segoe UI",Arial,sans-serif;
+    --font-body:"Segoe UI",Arial,Helvetica,sans-serif;
+    --font-mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+
+  *{ box-sizing:border-box; }
+
+  body{
+    margin:0;
+    background:var(--gray-50);
+    color:var(--navy-900);
+    font-family:var(--font-body);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .container{
+    max-width:1080px;
+    margin:0 auto;
+    padding:0 24px 60px;
+  }
+
+  /* ---------- Header ---------- */
+  header.app-header{
+    background:linear-gradient(135deg,var(--navy-900) 0%,var(--navy-800) 100%);
+    color:var(--white);
+    padding:36px 24px 32px;
+    margin-bottom:28px;
+  }
+  .header-inner{ max-width:1080px; margin:0 auto; }
+  .eyebrow{
+    text-transform:uppercase;
+    letter-spacing:0.14em;
+    font-size:0.72rem;
+    font-weight:700;
+    color:#9FB6D9;
+    margin:0 0 10px;
+  }
+  h1{
+    font-family:var(--font-display);
+    font-size:1.9rem;
+    margin:0 0 6px;
+    font-weight:700;
+  }
+  .subtitle{
+    font-size:1.02rem;
+    color:#CBD9EE;
+    margin:0 0 20px;
+  }
+  .objective{
+    background:rgba(255,255,255,0.06);
+    border-left:3px solid var(--navy-accent-light);
+    padding:12px 16px;
+    margin:0;
+    font-size:0.92rem;
+    color:#E7EEF8;
+  }
+
+  /* ---------- Panels ---------- */
+  .panel{
+    background:var(--white);
+    border:1px solid var(--gray-100);
+    border-radius:6px;
+    padding:24px 26px;
+    margin-bottom:20px;
+    box-shadow:0 1px 2px rgba(11,31,58,0.04);
+  }
+  .panel h2{
+    font-family:var(--font-display);
+    font-size:1.12rem;
+    color:var(--navy-900);
+    margin:0 0 14px;
+  }
+  .panel h3{
+    font-family:var(--font-display);
+    font-size:0.98rem;
+    color:var(--navy-900);
+    margin:26px 0 12px;
+  }
+  .scenario-panel p{
+    margin:0;
+    color:var(--gray-700);
+    font-size:0.95rem;
+  }
+  .hint{
+    color:var(--gray-500);
+    font-size:0.86rem;
+    margin:-6px 0 16px;
+  }
+
+  /* ---------- Shipment / route cards ---------- */
+  .shipment-grid, .route-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+    gap:14px;
+  }
+  .shipment-card, .route-card{
+    border:1px solid var(--gray-100);
+    border-top:4px solid var(--navy-accent);
+    border-radius:5px;
+    padding:14px 16px;
+    background:var(--gray-50);
+  }
+  .shipment-card .card-id{
+    font-family:var(--font-mono);
+    font-weight:700;
+    font-size:1.05rem;
+    color:var(--navy-900);
+    margin-bottom:6px;
+  }
+  .card-row{
+    display:flex;
+    justify-content:space-between;
+    font-size:0.86rem;
+    color:var(--gray-700);
+    padding:3px 0;
+    border-bottom:1px dashed var(--gray-200);
+  }
+  .card-row:last-child{ border-bottom:none; }
+  .card-row span.value{
+    font-family:var(--font-mono);
+    color:var(--navy-900);
+    font-weight:600;
+  }
+  .route-card .route-name{
+    font-weight:700;
+    color:var(--navy-900);
+    margin-bottom:6px;
+    font-size:0.98rem;
+  }
+  .route-card .route-deadline{
+    font-family:var(--font-mono);
+    font-size:1.3rem;
+    color:var(--navy-800);
+    font-weight:700;
+  }
+  .route-card .route-deadline-label{
+    font-size:0.74rem;
+    color:var(--gray-500);
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+  }
+
+  /* ---------- Sequence slots ---------- */
+  .sequence-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:16px;
+  }
+  .sequence-slot{
+    border:1px solid var(--gray-200);
+    border-radius:5px;
+    padding:14px;
+    background:var(--gray-50);
+  }
+  .sequence-slot label{
+    display:block;
+    font-size:0.8rem;
+    font-weight:700;
+    color:var(--navy-800);
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    margin-bottom:8px;
+  }
+  select.slot-select{
+    width:100%;
+    padding:9px 10px;
+    font-size:0.92rem;
+    font-family:var(--font-body);
+    border:1px solid var(--gray-300);
+    border-radius:4px;
+    background:var(--white);
+    color:var(--navy-900);
+  }
+  select.slot-select:focus{
+    outline:2px solid var(--navy-accent);
+    outline-offset:1px;
+  }
+
+  /* ---------- Lote X options ---------- */
+  .lote-situation{
+    background:var(--gray-50);
+    border:1px solid var(--gray-200);
+    border-radius:5px;
+    padding:12px 16px;
+    font-size:0.94rem;
+    color:var(--navy-900);
+    margin-bottom:16px;
+  }
+  .lote-options{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+  }
+  .lote-option{
+    padding:16px;
+    border:1.5px solid var(--gray-300);
+    background:var(--white);
+    border-radius:5px;
+    font-family:var(--font-body);
+    font-size:0.93rem;
+    font-weight:600;
+    color:var(--navy-900);
+    cursor:pointer;
+    text-align:left;
+  }
+  .lote-option:hover{ border-color:var(--navy-accent); }
+  .lote-option.selected{
+    background:var(--navy-900);
+    border-color:var(--navy-900);
+    color:var(--white);
+  }
+  .lote-option:focus-visible{
+    outline:2px solid var(--navy-accent);
+    outline-offset:2px;
+  }
+
+  .error-message{
+    color:var(--status-red);
+    background:var(--status-red-bg);
+    border:1px solid #EFC9C6;
+    border-radius:4px;
+    padding:9px 12px;
+    font-size:0.85rem;
+    margin-top:14px;
+  }
+
+  /* ---------- Action bar ---------- */
+  .action-bar{
+    display:flex;
+    gap:14px;
+    justify-content:center;
+    margin:8px 0 28px;
+    flex-wrap:wrap;
+  }
+  .btn-primary, .btn-secondary{
+    font-family:var(--font-body);
+    font-size:0.96rem;
+    font-weight:700;
+    padding:13px 30px;
+    border-radius:5px;
+    cursor:pointer;
+    border:1.5px solid transparent;
+  }
+  .btn-primary{
+    background:var(--navy-900);
+    color:var(--white);
+  }
+  .btn-primary:hover{ background:var(--navy-800); }
+  .btn-secondary{
+    background:var(--white);
+    color:var(--navy-900);
+    border-color:var(--gray-300);
+  }
+  .btn-secondary:hover{ border-color:var(--navy-900); }
+  .btn-primary:focus-visible, .btn-secondary:focus-visible{
+    outline:2px solid var(--navy-accent);
+    outline-offset:2px;
+  }
+
+  /* ---------- Results ---------- */
+  .summary-cards{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:14px;
+    margin-bottom:18px;
+  }
+  .summary-card{
+    background:var(--gray-50);
+    border:1px solid var(--gray-100);
+    border-left:5px solid var(--gray-300);
+    border-radius:5px;
+    padding:16px;
+  }
+  .summary-card.ok{ border-left-color:var(--status-green); }
+  .summary-card.bad{ border-left-color:var(--status-red); }
+  .summary-card .summary-number{
+    font-family:var(--font-mono);
+    font-size:1.7rem;
+    font-weight:700;
+    color:var(--navy-900);
+  }
+  .summary-card .summary-label{
+    font-size:0.8rem;
+    color:var(--gray-700);
+    margin-top:2px;
+  }
+
+  .diagnosis-box p{
+    background:var(--gray-50);
+    border-left:3px solid var(--navy-accent);
+    padding:10px 14px;
+    margin:0 0 8px;
+    font-size:0.9rem;
+    color:var(--navy-900);
+  }
+  .diagnosis-box p.viable{
+    border-left-color:var(--status-green);
+    background:var(--status-green-bg);
+    font-weight:600;
+  }
+
+  .lote-verdict{
+    display:inline-block;
+    font-size:0.78rem;
+    font-weight:700;
+    padding:3px 10px;
+    border-radius:20px;
+    margin-bottom:8px;
+  }
+  .lote-verdict.correct{ background:var(--status-green-bg); color:var(--status-green); }
+  .lote-verdict.incorrect{ background:var(--status-red-bg); color:var(--status-red); }
+  .lote-explain{
+    font-size:0.9rem;
+    color:var(--gray-700);
+    margin:0 0 20px;
+  }
+
+  table.results-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:0.86rem;
+    margin-bottom:8px;
+  }
+  table.results-table th{
+    background:var(--navy-900);
+    color:var(--white);
+    text-align:left;
+    padding:9px 10px;
+    font-weight:600;
+    font-size:0.78rem;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+  }
+  table.results-table td{
+    padding:9px 10px;
+    border-bottom:1px solid var(--gray-100);
+    font-family:var(--font-mono);
+    color:var(--navy-900);
+  }
+  table.results-table tbody tr:nth-child(even){ background:var(--gray-50); }
+  .badge{
+    display:inline-block;
+    padding:3px 9px;
+    border-radius:20px;
+    font-size:0.76rem;
+    font-weight:700;
+    font-family:var(--font-body);
+  }
+  .badge.on-time{ background:var(--status-green-bg); color:var(--status-green); }
+  .badge.delay{ background:var(--status-red-bg); color:var(--status-red); }
+
+  /* ---------- Timeline ---------- */
+  .timeline-wrap{
+    overflow-x:auto;
+    padding-bottom:6px;
+  }
+  .timeline-grid{
+    display:grid;
+    grid-template-columns:minmax(160px,190px) 1fr;
+    row-gap:8px;
+    column-gap:12px;
+    position:relative;
+    padding-top:26px;
+    min-width:640px;
+  }
+  .axis-spacer{ }
+  .axis-track{
+    position:relative;
+    height:20px;
+  }
+  .tick{
+    position:absolute;
+    top:0;
+    transform:translateX(-50%);
+    font-family:var(--font-mono);
+    font-size:0.66rem;
+    color:var(--gray-500);
+    white-space:nowrap;
+  }
+  .row-label{
+    align-self:center;
+    font-size:0.8rem;
+    font-weight:600;
+    color:var(--gray-700);
+  }
+  .row-track{
+    position:relative;
+    height:38px;
+    background:var(--gray-50);
+    border:1px solid var(--gray-100);
+    border-radius:4px;
+  }
+  .block{
+    position:absolute;
+    top:2px;
+    bottom:2px;
+    border-radius:3px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:var(--font-mono);
+    font-size:0.72rem;
+    font-weight:700;
+    color:var(--white);
+    overflow:hidden;
+    white-space:nowrap;
+  }
+  .block.unload{ background:var(--navy-800); }
+  .block.idle{
+    background:repeating-linear-gradient(45deg,var(--gray-300),var(--gray-300) 5px,var(--gray-100) 5px,var(--gray-100) 10px);
+  }
+  .block.transfer{
+    background:repeating-linear-gradient(45deg,var(--navy-accent),var(--navy-accent) 5px,var(--navy-accent-light) 5px,var(--navy-accent-light) 10px);
+    color:var(--white);
+  }
+  .deadline-line{
+    grid-column:2;
+    grid-row:1 / -1;
+    position:relative;
+    pointer-events:none;
+  }
+  .deadline-line .line-inner{
+    position:absolute;
+    top:20px;
+    bottom:0;
+    width:0;
+    border-left:2px dashed var(--status-red);
+  }
+  .deadline-line .line-label{
+    position:absolute;
+    top:0;
+    transform:translateX(-50%);
+    font-family:var(--font-mono);
+    font-size:0.62rem;
+    font-weight:700;
+    color:var(--status-red);
+    text-align:center;
+    white-space:nowrap;
+    line-height:1.25;
+  }
+  .timeline-legend{
+    display:flex;
+    gap:18px;
+    flex-wrap:wrap;
+    margin-top:16px;
+    font-size:0.78rem;
+    color:var(--gray-700);
+  }
+  .timeline-legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .legend-swatch{ width:14px; height:14px; border-radius:2px; display:inline-block; }
+
+  .final-message{
+    background:var(--navy-900);
+    color:var(--white);
+    padding:16px 18px;
+    border-radius:5px;
+    font-size:0.92rem;
+    margin-top:22px;
+    line-height:1.55;
+  }
+
+  /* ---------- Instructor notes ---------- */
+  details.instructor-notes{
+    background:var(--white);
+    border:1px solid var(--gray-100);
+    border-radius:6px;
+    padding:0;
+    margin-top:8px;
+  }
+  details.instructor-notes summary{
+    cursor:pointer;
+    padding:16px 22px;
+    font-weight:700;
+    color:var(--navy-900);
+    font-size:0.94rem;
+    list-style:none;
+  }
+  details.instructor-notes summary::-webkit-details-marker{ display:none; }
+  details.instructor-notes summary::before{
+    content:"▸ ";
+    color:var(--navy-accent);
+  }
+  details.instructor-notes[open] summary::before{
+    content:"▾ ";
+  }
+  .instructor-content{
+    padding:0 22px 20px;
+    font-size:0.88rem;
+    color:var(--gray-700);
+  }
+  .instructor-content dl{ margin:0; }
+  .instructor-content dt{ font-weight:700; color:var(--navy-900); margin-top:12px; }
+  .instructor-content dd{ margin:4px 0 0; }
+
+  [hidden]{ display:none !important; }
+
+  @media (max-width:760px){
+    .sequence-grid, .lote-options, .summary-cards{ grid-template-columns:1fr; }
+    h1{ font-size:1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-inner">
+    <p class="eyebrow">Ejercicio ejecutivo · Operaciones logísticas</p>
+    <h1>Mini-reto: Operación de un Cross-Dock</h1>
+    <p class="subtitle">Programa las recepciones para cumplir las salidas</p>
+    <p class="objective"><strong>Objetivo de aprendizaje:</strong> Priorizar las recepciones de acuerdo con los horarios de salida y distinguir entre transferencia directa y almacenamiento temporal.</p>
+  </div>
+</header>
+
+<main class="container">
+
+  <section class="panel scenario-panel">
+    <h2>Escenario</h2>
+    <p>Un cross-dock opera temporalmente con un solo andén de recepción debido a mantenimiento. Tres unidades de entrada transportan mercancía ya asignada a rutas de salida. Cada descarga requiere 30 minutos y, después de la descarga, se requieren 15 minutos para clasificar y transferir los pallets al andén de salida.</p>
+  </section>
+
+  <section class="panel">
+    <h2>Embarques de entrada</h2>
+    <div class="shipment-grid" id="shipment-grid"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Rutas de salida</h2>
+    <div class="route-grid" id="route-grid"></div>
+  </section>
+
+  <section class="panel decision-panel">
+    <h2>1. Programe la secuencia de descarga</h2>
+    <p class="hint">Seleccione qué embarque ocupa cada posición en el único andén de recepción disponible.</p>
+    <div class="sequence-grid">
+      <div class="sequence-slot">
+        <label for="slot1">Primera descarga</label>
+        <select id="slot1" class="slot-select"></select>
+      </div>
+      <div class="sequence-slot">
+        <label for="slot2">Segunda descarga</label>
+        <select id="slot2" class="slot-select"></select>
+      </div>
+      <div class="sequence-slot">
+        <label for="slot3">Tercera descarga</label>
+        <select id="slot3" class="slot-select"></select>
+      </div>
+    </div>
+    <p id="sequence-error" class="error-message" hidden></p>
+  </section>
+
+  <section class="panel decision-panel">
+    <h2>2. Decida qué hacer con un lote sin pedido asignado</h2>
+    <p class="lote-situation">Lote X: 4 pallets recibidos sin cliente, ruta ni pedido de salida asignado.</p>
+    <div class="lote-options">
+      <button type="button" class="lote-option" data-value="directo">Enviar directamente a un andén de salida</button>
+      <button type="button" class="lote-option" data-value="almacenamiento">Enviar a almacenamiento temporal</button>
+    </div>
+    <p id="lote-error" class="error-message" hidden></p>
+  </section>
+
+  <div class="action-bar">
+    <button id="evaluate-btn" class="btn-primary" type="button">Evaluar programación</button>
+    <button id="reset-btn" class="btn-secondary" type="button">Reiniciar actividad</button>
+  </div>
+
+  <section id="results-section" class="panel results-panel" hidden>
+    <h2>Resultados de la programación</h2>
+
+    <div class="summary-cards">
+      <div class="summary-card" id="summary-ontime">
+        <div class="summary-number" id="summary-ontime-number">–</div>
+        <div class="summary-label">Rutas que salen a tiempo</div>
+      </div>
+      <div class="summary-card" id="summary-delay">
+        <div class="summary-number" id="summary-delay-number">–</div>
+        <div class="summary-label">Rutas con retraso</div>
+      </div>
+      <div class="summary-card" id="summary-lote">
+        <div class="summary-number" id="summary-lote-number">–</div>
+        <div class="summary-label">Decisión de almacenamiento</div>
+      </div>
+    </div>
+
+    <div class="diagnosis-box" id="diagnosis-box"></div>
+
+    <h3>Decisión sobre el Lote X</h3>
+    <div id="lote-verdict-wrap"></div>
+
+    <h3>Detalle por embarque</h3>
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th>Embarque</th>
+          <th>Destino</th>
+          <th>Inicio de descarga</th>
+          <th>Fin de descarga</th>
+          <th>Pallets disponibles</th>
+          <th>Hora límite de salida</th>
+          <th>Resultado</th>
+        </tr>
+      </thead>
+      <tbody id="results-tbody"></tbody>
+    </table>
+
+    <h3>Línea de tiempo de operación</h3>
+    <div class="timeline-wrap">
+      <div class="timeline-grid" id="timeline"></div>
+    </div>
+    <div class="timeline-legend">
+      <span><span class="legend-swatch" style="background:var(--navy-800);"></span>Descarga en el andén</span>
+      <span><span class="legend-swatch" style="background:repeating-linear-gradient(45deg,var(--gray-300),var(--gray-300) 3px,var(--gray-100) 3px,var(--gray-100) 6px);"></span>Andén inactivo</span>
+      <span><span class="legend-swatch" style="background:repeating-linear-gradient(45deg,var(--navy-accent),var(--navy-accent) 3px,var(--navy-accent-light) 3px,var(--navy-accent-light) 6px);"></span>Clasificación y transferencia (15 min)</span>
+      <span><span class="legend-swatch" style="border-left:2px dashed var(--status-red); background:none;"></span>Hora límite de salida</span>
+    </div>
+
+    <p id="final-message" class="final-message"></p>
+  </section>
+
+  <details class="instructor-notes">
+    <summary>Notas para el instructor</summary>
+    <div class="instructor-content">
+      <dl>
+        <dt>Duración sugerida</dt>
+        <dd>8–10 minutos</dd>
+        <dt>Pregunta de cierre</dt>
+        <dd>¿Por qué atender primero al vehículo que llegó primero no siempre produce la mejor programación?</dd>
+        <dt>Respuesta esperada</dt>
+        <dd>Porque la prioridad también depende del horario límite de la ruta de salida.</dd>
+        <dt>Conceptos</dt>
+        <dd>Sincronización de entradas y salidas, prioridad operativa, almacenamiento mínimo y pedidos con destino conocido.</dd>
+      </dl>
+    </div>
+  </details>
+
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  /* =========================================================
+     CONFIG — instructors can edit scenario data here
+  ========================================================= */
+  const CONFIG = {
+    shipments: {
+      E1: { id:"E1", arrival:"08:00", destination:"Ruta Sur",    unloadMinutes:30 },
+      E2: { id:"E2", arrival:"08:00", destination:"Ruta Norte",  unloadMinutes:30 },
+      E3: { id:"E3", arrival:"08:15", destination:"Ruta Centro", unloadMinutes:30 }
+    },
+    routeOrder: ["Ruta Norte","Ruta Centro","Ruta Sur"],
+    routes: {
+      "Ruta Norte":  { deadline:"09:00" },
+      "Ruta Centro": { deadline:"09:30" },
+      "Ruta Sur":    { deadline:"10:00" }
+    },
+    transferMinutes: 15,
+    dayStart: "08:00",
+    loteX: {
+      pallets: 4,
+      correctChoice: "almacenamiento"
+    }
+  };
+
+  const SHIPMENT_ORDER = ["E1","E2","E3"];
+
+  /* =========================================================
+     Time helpers — internal representation is minutes after midnight
+  ========================================================= */
+  function toMinutes(hhmm){
+    const parts = hhmm.split(":");
+    return parseInt(parts[0],10) * 60 + parseInt(parts[1],10);
+  }
+  function toHHMM(mins){
+    const h = Math.floor(mins/60);
+    const m = mins % 60;
+    return String(h).padStart(2,"0") + ":" + String(m).padStart(2,"0");
+  }
+
+  /* =========================================================
+     Scheduling engine
+  ========================================================= */
+  function computeSchedule(sequenceIds){
+    const axisStart = toMinutes(CONFIG.dayStart);
+    let prevEnd = axisStart;
+    const results = [];
+    sequenceIds.forEach(function(id){
+      const shipment = CONFIG.shipments[id];
+      const arrival = toMinutes(shipment.arrival);
+      const startUnload = Math.max(prevEnd, arrival);
+      const idleMinutes = startUnload - prevEnd;
+      const endUnload = startUnload + shipment.unloadMinutes;
+      const palletsAvailable = endUnload + CONFIG.transferMinutes;
+      const deadline = toMinutes(CONFIG.routes[shipment.destination].deadline);
+      const delayMinutes = Math.max(0, palletsAvailable - deadline);
+      results.push({
+        id: id,
+        destination: shipment.destination,
+        arrival: arrival,
+        startUnload: startUnload,
+        endUnload: endUnload,
+        palletsAvailable: palletsAvailable,
+        deadline: deadline,
+        onTime: palletsAvailable <= deadline,
+        delayMinutes: delayMinutes,
+        idleMinutes: idleMinutes
+      });
+      prevEnd = endUnload;
+    });
+    return results;
+  }
+
+  // For a delayed shipment, find an earlier-scheduled shipment whose route
+  // deadline is later — i.e. a shipment that "took" priority it should not have.
+  function findPriorityIssues(results){
+    const issues = [];
+    results.forEach(function(r, idx){
+      if(r.delayMinutes > 0){
+        const before = results.slice(0, idx);
+        const conflict = before.find(function(b){ return b.deadline > r.deadline; });
+        if(conflict){
+          issues.push({ delayed:r, conflict:conflict });
+        }
+      }
+    });
+    return issues;
+  }
+
+  function evaluateLoteX(choice){
+    return { choice:choice, correct: choice === CONFIG.loteX.correctChoice };
+  }
+
+  /* =========================================================
+     Static content rendering (shipment / route cards, selects)
+  ========================================================= */
+  function renderShipmentCards(){
+    const grid = document.getElementById("shipment-grid");
+    grid.innerHTML = SHIPMENT_ORDER.map(function(id){
+      const s = CONFIG.shipments[id];
+      return (
+        '<div class="shipment-card">' +
+          '<div class="card-id">' + s.id + '</div>' +
+          '<div class="card-row"><span>Llegada</span><span class="value">' + s.arrival + '</span></div>' +
+          '<div class="card-row"><span>Destino</span><span class="value">' + s.destination + '</span></div>' +
+          '<div class="card-row"><span>Tiempo de descarga</span><span class="value">' + s.unloadMinutes + ' min</span></div>' +
+        '</div>'
+      );
+    }).join("");
+  }
+
+  function renderRouteCards(){
+    const grid = document.getElementById("route-grid");
+    grid.innerHTML = CONFIG.routeOrder.map(function(name){
+      const r = CONFIG.routes[name];
+      return (
+        '<div class="route-card">' +
+          '<div class="route-name">' + name + '</div>' +
+          '<div class="route-deadline-label">Salida programada</div>' +
+          '<div class="route-deadline">' + r.deadline + '</div>' +
+        '</div>'
+      );
+    }).join("");
+  }
+
+  function populateSelects(){
+    const optionsHtml = '<option value="">-- Seleccionar --</option>' +
+      SHIPMENT_ORDER.map(function(id){
+        const s = CONFIG.shipments[id];
+        return '<option value="' + id + '">' + id + ' — ' + s.destination + ' (llegada ' + s.arrival + ')</option>';
+      }).join("");
+    ["slot1","slot2","slot3"].forEach(function(slotId){
+      document.getElementById(slotId).innerHTML = optionsHtml;
+    });
+  }
+
+  /* =========================================================
+     Interaction state
+  ========================================================= */
+  const slotIds = ["slot1","slot2","slot3"];
+  function getSelects(){ return slotIds.map(function(id){ return document.getElementById(id); }); }
+
+  function updateSelectOptions(){
+    const selects = getSelects();
+    const chosen = selects.map(function(s){ return s.value; });
+    selects.forEach(function(select, idx){
+      Array.from(select.options).forEach(function(opt){
+        if(opt.value === "") return;
+        const usedElsewhere = chosen.some(function(val, i){ return val === opt.value && i !== idx; });
+        opt.disabled = usedElsewhere;
+      });
+    });
+  }
+
+  let loteChoice = null;
+  const loteButtons = Array.from(document.querySelectorAll(".lote-option"));
+
+  function hideSequenceError(){ document.getElementById("sequence-error").hidden = true; }
+  function hideLoteError(){ document.getElementById("lote-error").hidden = true; }
+
+  /* =========================================================
+     Results rendering
+  ========================================================= */
+  function renderResults(results, loteEval){
+    const onTimeCount = results.filter(function(r){ return r.onTime; }).length;
+    const delayCount = results.length - onTimeCount;
+
+    // Summary cards
+    document.getElementById("summary-ontime-number").textContent = onTimeCount + " / " + results.length;
+    document.getElementById("summary-delay-number").textContent = delayCount + " / " + results.length;
+    document.getElementById("summary-ontime").className = "summary-card " + (delayCount === 0 ? "ok" : "bad");
+    document.getElementById("summary-delay").className = "summary-card " + (delayCount === 0 ? "ok" : "bad");
+
+    document.getElementById("summary-lote-number").textContent = loteEval.correct ? "Correcta" : "Incorrecta";
+    document.getElementById("summary-lote").className = "summary-card " + (loteEval.correct ? "ok" : "bad");
+
+    // Diagnosis
+    const diagnosisBox = document.getElementById("diagnosis-box");
+    let diagnosisParts = [];
+    if(delayCount === 0 && loteEval.correct){
+      diagnosisParts.push('<p class="viable">Programación viable: las tres rutas pueden salir a tiempo y el lote sin destino se mantiene fuera del flujo de cross-docking.</p>');
+    } else {
+      results.filter(function(r){ return !r.onTime; }).forEach(function(r){
+        diagnosisParts.push(
+          '<p>La salida de <strong>' + r.destination + '</strong> se retrasa <strong>' + r.delayMinutes + ' minutos</strong>: los pallets de ' + r.id +
+          ' están disponibles hasta las ' + toHHMM(r.palletsAvailable) + ', después de la hora límite (' + toHHMM(r.deadline) + ').</p>'
+        );
+      });
+      findPriorityIssues(results).forEach(function(issue){
+        diagnosisParts.push(
+          '<p>El embarque <strong>' + issue.delayed.id + '</strong> (' + issue.delayed.destination + ') debió haberse priorizado sobre <strong>' + issue.conflict.id +
+          '</strong> (' + issue.conflict.destination + '), cuya hora límite de salida (' + toHHMM(issue.conflict.deadline) + ') es posterior.</p>'
+        );
+      });
+      if(delayCount === 0){
+        diagnosisParts.push('<p>Las tres rutas salen a tiempo con la secuencia elegida.</p>');
+      }
+    }
+    diagnosisBox.innerHTML = diagnosisParts.join("");
+
+    // Lote X verdict
+    const loteWrap = document.getElementById("lote-verdict-wrap");
+    const verdictClass = loteEval.correct ? "correct" : "incorrect";
+    const verdictLabel = loteEval.correct ? "Decisión correcta" : "Decisión incorrecta";
+    const explainText = loteEval.correct
+      ? "Sin cliente, ruta ni pedido de salida asignado, el Lote X no cumple los requisitos para una transferencia directa. Corresponde resguardarlo en almacenamiento temporal hasta que se le asigne un destino."
+      : "El cross-docking requiere un destino o pedido de salida conocido. La mercancía sin destino asignado no puede transferirse directamente a un andén de salida; debía enviarse a almacenamiento temporal.";
+    loteWrap.innerHTML =
+      '<span class="lote-verdict ' + verdictClass + '">' + verdictLabel + '</span>' +
+      '<p class="lote-explain">' + explainText + '</p>';
+
+    // Table
+    const tbody = document.getElementById("results-tbody");
+    tbody.innerHTML = results.map(function(r){
+      const badge = r.onTime
+        ? '<span class="badge on-time">A tiempo</span>'
+        : '<span class="badge delay">Retraso de ' + r.delayMinutes + ' minutos</span>';
+      return (
+        '<tr>' +
+          '<td>' + r.id + '</td>' +
+          '<td>' + r.destination + '</td>' +
+          '<td>' + toHHMM(r.startUnload) + '</td>' +
+          '<td>' + toHHMM(r.endUnload) + '</td>' +
+          '<td>' + toHHMM(r.palletsAvailable) + '</td>' +
+          '<td>' + toHHMM(r.deadline) + '</td>' +
+          '<td>' + badge + '</td>' +
+        '</tr>'
+      );
+    }).join("");
+
+    renderTimeline(results);
+
+    document.getElementById("final-message").textContent =
+      "En un cross-dock, la secuencia de recepción no debe depender únicamente del orden de llegada. También debe considerar los horarios de salida y el destino de la mercancía.";
+  }
+
+  function renderTimeline(results){
+    const minTime = toMinutes(CONFIG.dayStart);
+    const deadlineTimes = CONFIG.routeOrder.map(function(name){
+      return { name:name, time: toMinutes(CONFIG.routes[name].deadline) };
+    });
+    const maxAvailable = Math.max.apply(null, results.map(function(r){ return r.palletsAvailable; }));
+    const maxDeadline = Math.max.apply(null, deadlineTimes.map(function(d){ return d.time; }));
+    const maxTime = Math.max(maxAvailable, maxDeadline) + 15;
+    const span = maxTime - minTime;
+
+    function pct(t){ return ((t - minTime) / span) * 100; }
+
+    // Axis ticks every 15 minutes
+    let ticks = "";
+    for(let t = minTime; t <= maxTime; t += 15){
+      ticks += '<span class="tick" style="left:' + pct(t).toFixed(2) + '%">' + toHHMM(t) + '</span>';
+    }
+
+    // Dock row (idle + unload blocks, back to back based on sequence)
+    let dockBlocks = "";
+    let prevEnd = minTime;
+    results.forEach(function(r){
+      if(r.startUnload > prevEnd){
+        dockBlocks += '<div class="block idle" style="left:' + pct(prevEnd).toFixed(2) + '%;width:' + (pct(r.startUnload)-pct(prevEnd)).toFixed(2) + '%;" title="Andén inactivo hasta ' + toHHMM(r.startUnload) + '"></div>';
+      }
+      dockBlocks += '<div class="block unload" style="left:' + pct(r.startUnload).toFixed(2) + '%;width:' + (pct(r.endUnload)-pct(r.startUnload)).toFixed(2) + '%;" title="' + r.id + ' descarga ' + toHHMM(r.startUnload) + '–' + toHHMM(r.endUnload) + '">' + r.id + '</div>';
+      prevEnd = r.endUnload;
+    });
+
+    // Transfer rows, one per shipment
+    let transferRowsHtml = "";
+    results.forEach(function(r){
+      transferRowsHtml +=
+        '<span class="row-label">Transferencia ' + r.id + ' → ' + r.destination + '</span>' +
+        '<div class="row-track">' +
+          '<div class="block transfer" style="left:' + pct(r.endUnload).toFixed(2) + '%;width:' + (pct(r.palletsAvailable)-pct(r.endUnload)).toFixed(2) + '%;" title="Clasificación y transferencia">15 min</div>' +
+        '</div>';
+    });
+
+    // Deadline overlay lines
+    let deadlineHtml = "";
+    deadlineTimes.forEach(function(d){
+      deadlineHtml +=
+        '<div class="deadline-line">' +
+          '<div class="line-inner" style="left:' + pct(d.time).toFixed(2) + '%;"></div>' +
+          '<div class="line-label" style="left:' + pct(d.time).toFixed(2) + '%;">' + d.name + '<br>' + toHHMM(d.time) + '</div>' +
+        '</div>';
+    });
+
+    const html =
+      '<div class="axis-spacer"></div>' +
+      '<div class="axis-track">' + ticks + '</div>' +
+      '<span class="row-label">Andén de recepción</span>' +
+      '<div class="row-track">' + dockBlocks + '</div>' +
+      transferRowsHtml +
+      deadlineHtml;
+
+    document.getElementById("timeline").innerHTML = html;
+  }
+
+  /* =========================================================
+     Event wiring
+  ========================================================= */
+  function init(){
+    renderShipmentCards();
+    renderRouteCards();
+    populateSelects();
+    updateSelectOptions();
+
+    getSelects().forEach(function(select){
+      select.addEventListener("change", function(){
+        updateSelectOptions();
+        hideSequenceError();
+      });
+    });
+
+    loteButtons.forEach(function(btn){
+      btn.addEventListener("click", function(){
+        loteButtons.forEach(function(b){ b.classList.remove("selected"); });
+        btn.classList.add("selected");
+        loteChoice = btn.dataset.value;
+        hideLoteError();
+      });
+    });
+
+    document.getElementById("evaluate-btn").addEventListener("click", function(){
+      const selects = getSelects();
+      const sequence = selects.map(function(s){ return s.value; });
+      const seqError = document.getElementById("sequence-error");
+      const loteError = document.getElementById("lote-error");
+      let valid = true;
+
+      const allFilled = sequence.every(function(v){ return v !== ""; });
+      const allUnique = new Set(sequence).size === sequence.length;
+      if(!allFilled || !allUnique){
+        seqError.textContent = "Seleccione los tres embarques, cada uno en una sola posición, antes de evaluar.";
+        seqError.hidden = false;
+        valid = false;
+      } else {
+        seqError.hidden = true;
+      }
+
+      if(!loteChoice){
+        loteError.textContent = "Seleccione una decisión para el Lote X antes de evaluar.";
+        loteError.hidden = false;
+        valid = false;
+      } else {
+        loteError.hidden = true;
+      }
+
+      if(!valid) return;
+
+      const results = computeSchedule(sequence);
+      const loteEval = evaluateLoteX(loteChoice);
+      renderResults(results, loteEval);
+
+      const resultsSection = document.getElementById("results-section");
+      resultsSection.hidden = false;
+      resultsSection.scrollIntoView({ behavior:"smooth", block:"start" });
+    });
+
+    document.getElementById("reset-btn").addEventListener("click", function(){
+      getSelects().forEach(function(s){ s.value = ""; });
+      updateSelectOptions();
+      loteButtons.forEach(function(b){ b.classList.remove("selected"); });
+      loteChoice = null;
+      document.getElementById("sequence-error").hidden = true;
+      document.getElementById("lote-error").hidden = true;
+      document.getElementById("results-section").hidden = true;
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+})();
+</script>
+
+</body>
+</html>
